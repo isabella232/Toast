@@ -88,6 +88,8 @@ static NSString *kDurationKey = @"duration";
     
     [toast setCenter:toastPoint];
     [toast setAlpha:0.0];
+    toast.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin |
+                                UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
     [self addSubview:toast];
     
     [UIView beginAnimations:@"fade_in" context:toast];
