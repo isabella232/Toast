@@ -13,11 +13,11 @@
 #define kMaxWidth           0.8
 #define kMaxHeight          0.8
 
-#define kHorizontalPadding  10.0
-#define kVerticalPadding    10.0
+#define kHorizontalPadding  15.0
+#define kVerticalPadding    15.0
 #define kCornerRadius       10.0
-#define kOpacity            0.8
-#define kFontSize           16.0
+#define kOpacity            0.6
+#define kFontSize           20.0
 #define kMaxTitleLines      999
 #define kMaxMessageLines    999
 
