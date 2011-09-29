@@ -13,11 +13,11 @@
 #define kMaxWidth           0.8
 #define kMaxHeight          0.8
 
-#define kHorizontalPadding  15.0
-#define kVerticalPadding    15.0
+#define kHorizontalPadding  10.0
+#define kVerticalPadding    10.0
 #define kCornerRadius       10.0
 #define kOpacity            0.6
-#define kFontSize           20.0
+#define kFontSize           14.0
 #define kMaxTitleLines      999
 #define kMaxMessageLines    999
 
@@ -262,7 +262,16 @@ static NSString *kDurationKey = @"duration";
     //if the image width is larger than longerWidth, use the image width to calculate the wrapper width.
     //the same logic applies to the wrapper height
     float wrapperWidth = ((longerLeft + longerWidth + kHorizontalPadding) < imageWidth + (kHorizontalPadding * 2)) ? imageWidth + (kHorizontalPadding * 2) : (longerLeft + longerWidth + kHorizontalPadding);
-    float wrapperHeight = ((messageTop + messageHeight + kVerticalPadding) < imageHeight + (kVerticalPadding * 2)) ? imageHeight + (kVerticalPadding * 2) : (messageTop + messageHeight + kVerticalPadding);
+    float wrapperHeight = 0;
+    // Use title instead of message bounds if there is no message
+    if (messageLabel != nil) {
+        wrapperHeight = ((messageTop + messageHeight + kVerticalPadding) < imageHeight + (kVerticalPadding * 2)) ? imageHeight + (kVerticalPadding * 2) : (messageTop + messageHeight + kVerticalPadding);
+    }
+    else {
+        wrapperHeight = ((titleTop + titleHeight + kVerticalPadding) < imageHeight + (kVerticalPadding * 2)) ? imageHeight + (kVerticalPadding * 2) : (titleTop + titleHeight + kVerticalPadding);
+    }
+
+
                          
     [wrapperView setFrame:CGRectMake(0, 0, wrapperWidth, wrapperHeight)];
     
