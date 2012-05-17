@@ -30,6 +30,7 @@
 #define kImageHeight        80.0
 
 static NSString *kDurationKey = @"duration";
+static NSString *kPendingToastKey = @"pendingToast";
 
 
 @interface UIView (ToastPrivate)
@@ -80,7 +81,16 @@ static NSString *kDurationKey = @"duration";
      * Displays a view for a given duration & position. *
      *                                                  *
      ****************************************************/
-    
+
+    // First, check for other toasts.
+    UIView *pendingToast = nil;
+    objc_getAssociatedObject(pendingToast, &kPendingToastKey);
+    if (pendingToast) {
+        // Get rid of that toast and display this one instead.
+        [pendingToast removeFromSuperview];
+    }
+    objc_setAssociatedObject(self, &kPendingToastKey, toast, OBJC_ASSOCIATION_RETAIN);
+
     CGPoint toastPoint = [self getPositionFor:point toast:toast];
     
     //use an associative reference to associate the toast view with the display interval
@@ -126,7 +136,12 @@ static NSString *kDurationKey = @"duration";
     } else if ([animationID isEqualToString:@"fade_out"]) {
         
         [toast removeFromSuperview];
-        
+        // Reset pending toast (it's no longer pending)
+        UIView *pendingToast = nil;
+        objc_getAssociatedObject(pendingToast, &kPendingToastKey);
+        if (pendingToast == toast) {
+            objc_setAssociatedObject(self, &kPendingToastKey, nil, OBJC_ASSOCIATION_RETAIN);
+        }
     }
     
 }
