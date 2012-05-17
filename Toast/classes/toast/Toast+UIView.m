@@ -86,6 +86,8 @@ static NSString *kPendingToastKey = @"pendingToast";
     UIView *pendingToast = nil;
     objc_getAssociatedObject(pendingToast, &kPendingToastKey);
     if (pendingToast) {
+        // Stop all in-progress animations.
+        [self.layer removeAllAnimations];
         // Get rid of that toast and display this one instead.
         [pendingToast removeFromSuperview];
     }
