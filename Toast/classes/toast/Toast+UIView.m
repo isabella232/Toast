@@ -83,13 +83,20 @@ static NSString *kPendingToastKey = @"pendingToast";
      ****************************************************/
 
     // First, check for other toasts.
-    UIView *pendingToast = nil;
-    objc_getAssociatedObject(pendingToast, &kPendingToastKey);
+    UIView *pendingToast = objc_getAssociatedObject(self, &kPendingToastKey);
+    objc_setAssociatedObject (toast, &kDurationKey, [NSNumber numberWithFloat:0.0], OBJC_ASSOCIATION_RETAIN);
     if (pendingToast) {
-        // Stop all in-progress animations.
-        [self.layer removeAllAnimations];
-        // Get rid of that toast and display this one instead.
-        [pendingToast removeFromSuperview];
+        // use UIViewAnimationOptionBeginFromCurrentState to cancel animations
+        // http://stackoverflow.com/a/841967
+        [UIView animateWithDuration:0.0
+                              delay:0.0
+                            options:UIViewAnimationOptionBeginFromCurrentState
+                         animations:^{
+                             pendingToast.alpha = 0.0;
+                         }
+                         completion:^(BOOL finished){
+                             [pendingToast removeFromSuperview];
+                         }];
     }
     objc_setAssociatedObject(self, &kPendingToastKey, toast, OBJC_ASSOCIATION_RETAIN);
 
@@ -104,48 +111,29 @@ static NSString *kPendingToastKey = @"pendingToast";
                                 UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
     [self addSubview:toast];
     
-    [UIView beginAnimations:@"fade_in" context:toast];
-    [UIView setAnimationDuration:kFadeDuration];
-    [UIView setAnimationDelegate:self];
-    [UIView setAnimationDidStopSelector:@selector(animationDidStop:finished:context:)];
-    [UIView setAnimationCurve:UIViewAnimationCurveEaseOut];
-    [toast setAlpha:1.0];
-    [UIView commitAnimations];
-    
-}
+    [UIView animateWithDuration:kFadeDuration
+                          delay:0.0
+                        options:UIViewAnimationOptionCurveEaseOut
+                     animations:^{
+                         toast.alpha = 1.0;
+                     } completion:^(BOOL finished) {
+                         //retrieve the display interval associated with the view
+                         float interval = [(NSNumber *)objc_getAssociatedObject(toast, &kDurationKey) floatValue];
 
-#pragma mark -
-#pragma mark Animation Delegate Method
-
-- (void)animationDidStop:(NSString*)animationID finished:(BOOL)finished context:(void *)context {
-    
-    UIView *toast = (UIView *)context;
-    
-    //retrieve the display interval associated with the view
-    float interval = [(NSNumber *)objc_getAssociatedObject(toast, &kDurationKey) floatValue];
-    
-    if([animationID isEqualToString:@"fade_in"]) {
-        
-        [UIView beginAnimations:@"fade_out" context:toast];
-        [UIView setAnimationDelay:interval];
-        [UIView setAnimationDuration:kFadeDuration];
-        [UIView setAnimationDelegate:self];
-        [UIView setAnimationDidStopSelector:@selector(animationDidStop:finished:context:)];
-        [UIView setAnimationCurve:UIViewAnimationCurveEaseIn];
-        [toast setAlpha:0.0];
-        [UIView commitAnimations];
-        
-    } else if ([animationID isEqualToString:@"fade_out"]) {
-        
-        [toast removeFromSuperview];
-        // Reset pending toast (it's no longer pending)
-        UIView *pendingToast = nil;
-        objc_getAssociatedObject(pendingToast, &kPendingToastKey);
-        if (pendingToast == toast) {
-            objc_setAssociatedObject(self, &kPendingToastKey, nil, OBJC_ASSOCIATION_RETAIN);
-        }
-    }
-    
+                         [UIView animateWithDuration:kFadeDuration
+                                               delay:interval
+                                             options:UIViewAnimationOptionCurveEaseIn
+                                          animations:^{
+                                              toast.alpha = 0.0;
+                                          } completion:^(BOOL finished) {
+                                              [toast removeFromSuperview];
+                                              // Reset pending toast (it's no longer pending)
+                                              UIView *pendingToast = objc_getAssociatedObject(self, &kPendingToastKey);
+                                              if (pendingToast == toast) {
+                                                  objc_setAssociatedObject(self, &kPendingToastKey, nil, OBJC_ASSOCIATION_RETAIN);
+                                              }
+                                          }];
+                     }];
 }
 
 #pragma mark -
