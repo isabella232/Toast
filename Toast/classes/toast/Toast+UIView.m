@@ -16,12 +16,12 @@
 #define kHorizontalPadding          10.0
 #define kVerticalPadding            10.0
 #define kCornerRadius               10.0
-#define kOpacity                    0.8
-#define kFontSize                   16.0
+#define kOpacity                    0.6
+#define kFontSize                   14.0
 #define kMaxTitleLines              999
 #define kMaxMessageLines            999
 #define kFadeDuration               0.2
-#define kDisplayShadow              YES
+#define kDisplayShadow              NO
 
 #define kDefaultLength              3.0
 #define kDefaultPosition            @"bottom"
@@ -35,6 +35,7 @@
 #define kActivityTag                91325
 
 static NSString *kDurationKey = @"CSToastDurationKey";
+static NSString *kPendingToastKey = @"pendingToast";
 
 
 @interface UIView (ToastPrivate)
@@ -84,7 +85,25 @@ static NSString *kDurationKey = @"CSToastDurationKey";
      * Displays a view for a given duration & position. *
      *                                                  *
      ****************************************************/
-    
+
+    // First, check for other toasts.
+    UIView *pendingToast = objc_getAssociatedObject(self, &kPendingToastKey);
+    objc_setAssociatedObject (toast, &kDurationKey, [NSNumber numberWithFloat:0.0], OBJC_ASSOCIATION_RETAIN);
+    if (pendingToast) {
+        // use UIViewAnimationOptionBeginFromCurrentState to cancel animations
+        // http://stackoverflow.com/a/841967
+        [UIView animateWithDuration:0.0
+                              delay:0.0
+                            options:UIViewAnimationOptionBeginFromCurrentState
+                         animations:^{
+                             pendingToast.alpha = 0.0;
+                         }
+                         completion:^(BOOL finished){
+                             [pendingToast removeFromSuperview];
+                         }];
+    }
+    objc_setAssociatedObject(self, &kPendingToastKey, toast, OBJC_ASSOCIATION_RETAIN);
+
     CGPoint toastPoint = [self getPositionFor:point toast:toast];
     
     // use an associative reference to associate the toast view with the display interval
@@ -92,16 +111,32 @@ static NSString *kDurationKey = @"CSToastDurationKey";
     
     [toast setCenter:toastPoint];
     [toast setAlpha:0.0];
+    toast.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin |
+                                UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
     [self addSubview:toast];
     
-    [UIView beginAnimations:@"fade_in" context:(__bridge void*)toast];
-    [UIView setAnimationDuration:kFadeDuration];
-    [UIView setAnimationDelegate:self];
-    [UIView setAnimationDidStopSelector:@selector(animationDidStop:finished:context:)];
-    [UIView setAnimationCurve:UIViewAnimationCurveEaseOut];
-    [toast setAlpha:1.0];
-    [UIView commitAnimations];
-    
+    [UIView animateWithDuration:kFadeDuration
+                          delay:0.0
+                        options:UIViewAnimationOptionCurveEaseOut
+                     animations:^{
+                         toast.alpha = 1.0;
+                     } completion:^(BOOL finished) {
+                         //retrieve the display interval associated with the view
+                         float interval = [(NSNumber *)objc_getAssociatedObject(toast, &kDurationKey) floatValue];
+                         [UIView animateWithDuration:kFadeDuration
+                                               delay:interval
+                                             options:UIViewAnimationOptionCurveEaseIn
+                                          animations:^{
+                                              toast.alpha = 0.0;
+                                          } completion:^(BOOL finished) {
+                                              [toast removeFromSuperview];
+                                              // Reset pending toast (it's no longer pending)
+                                              UIView *pendingToast = objc_getAssociatedObject(self, &kPendingToastKey);
+                                              if (pendingToast == toast) {
+                                                  objc_setAssociatedObject(self, &kPendingToastKey, nil, OBJC_ASSOCIATION_RETAIN);
+                                              }
+                                          }];
+                     }];
 }
 
 #pragma mark - Toast Activity Methods
@@ -338,9 +373,17 @@ static NSString *kDurationKey = @"CSToastDurationKey";
     CGFloat longerWidth = MAX(titleWidth, messageWidth);
     CGFloat longerLeft = MAX(titleLeft, messageLeft);
     
-    // wrapper width uses the longerWidth or the image width, whatever is larger. same logic applies to the wrapper height
-    CGFloat wrapperWidth = MAX((imageWidth + (kHorizontalPadding * 2)), (longerLeft + longerWidth + kHorizontalPadding));    
-    CGFloat wrapperHeight = MAX((messageTop + messageHeight + kVerticalPadding), (imageHeight + (kVerticalPadding * 2)));
+    //if the image width is larger than longerWidth, use the image width to calculate the wrapper width.
+    //the same logic applies to the wrapper height
+    CGFloat wrapperWidth = ((longerLeft + longerWidth + kHorizontalPadding) < imageWidth + (kHorizontalPadding * 2)) ? imageWidth + (kHorizontalPadding * 2) : (longerLeft + longerWidth + kHorizontalPadding);
+    CGFloat wrapperHeight = 0;
+    // Use title instead of message bounds if there is no message
+    if (messageLabel != nil) {
+        wrapperHeight = ((messageTop + messageHeight + kVerticalPadding) < imageHeight + (kVerticalPadding * 2)) ? imageHeight + (kVerticalPadding * 2) : (messageTop + messageHeight + kVerticalPadding);
+    }
+    else {
+        wrapperHeight = ((titleTop + titleHeight + kVerticalPadding) < imageHeight + (kVerticalPadding * 2)) ? imageHeight + (kVerticalPadding * 2) : (titleTop + titleHeight + kVerticalPadding);
+    }
                          
     [wrapperView setFrame:CGRectMake(0.0, 0.0, wrapperWidth, wrapperHeight)];
     
