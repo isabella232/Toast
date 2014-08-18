@@ -1,13 +1,15 @@
 Toast for iOS
 =============
-*Version 1.2*
+*Version 2.2*
 
 Toast is an Objective-C category that adds Android-style toast notifications to the UIView object class. It is intended to be simple, lightweight, and easy to use.
 
 What's New
 ---------
- - Version 1.2 adds support for ARC. 
- - The demo project has been updated to support both manual memory management & ARC. Toggle 'Objective-C Automatic Reference Counting' in the project's Build Settings to test.
+ - Refactored to support ARC.
+ - Added tap to dismiss support, enabled by default. This can be toggled with the `CSToastHidesOnTap` flag.
+ - The toast delay duration is now implemented with NSTimer instead of the UIView animation's delay property. 
+ - iOS7-related UI updates for the demo app.
 
 Screenshots
 ---------
@@ -38,13 +40,22 @@ See the demo project for more examples.
 
 Setup Instructions
 ------------------
-1. Add "Toast+UIView.h" & "Toast+UIView.m" to your project.
+Install with [CocoaPods](http://cocoapods.org) by adding the following to your Podfile:
+
+``` ruby
+platform :ios, '7.0'
+pod 'Toast', '~> 2.2'
+```
+
+or add manually: 
+
+1. Add `UIView+Toast.h` & `UIView+Toast.m` to your project.
 2. Link against QuartzCore.
 
 
 MIT License
 -----------
-    Copyright (c) 2012 Charles Scalesse.
+    Copyright (c) 2013 Charles Scalesse.
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the
